@@ -1,0 +1,94 @@
+
+services:
+  zookeeper:
+    image: debezium/zookeeper:2.7.3.Final
+    container_name: cdc_zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+    networks:
+      - cdc_net
+    volumes:
+      - zk_data:/zookeeper/data
+      - zk_txns:/zookeeper/txns
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  kafka:
+    image: debezium/kafka:2.7.3.Final
+    container_name: cdc_kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "19092:9092"
+    environment:
+      ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    networks:
+      - cdc_net
+    volumes:
+      - kafka_data:/kafka/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  connect:
+    image: debezium/connect:2.7.3.Final
+    container_name: cdc_connect
+    restart: always
+    depends_on:
+      - kafka
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: bus-cdc-connect-cluster
+      CONFIG_STORAGE_TOPIC: bus_connect_configs
+      OFFSET_STORAGE_TOPIC: bus_connect_offsets
+      STATUS_STORAGE_TOPIC: bus_connect_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    networks:
+      - cdc_net
+      - bus_enterprise_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: cdc_kafka_ui
+    restart: always
+    depends_on:
+      - kafka
+      - connect
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: bus-cdc
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
+    networks:
+      - cdc_net
+
+networks:
+  cdc_net:
+    name: bus_cdc_net
+    driver: bridge
+  bus_enterprise_net:
+    external: true
+
+volumes:
+  zk_data:
+  zk_txns:
+  kafka_data:

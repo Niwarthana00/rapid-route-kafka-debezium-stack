@@ -1,0 +1,35 @@
+{
+  "name": "bus-enterprise-connector-v2",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+
+    "database.hostname": "bus_enterprise_db",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "dev_password_only",
+    "database.dbname": "bus_enterprise",
+
+    "topic.prefix": "bus",
+
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_bus_slot",
+    "publication.autocreate.mode": "filtered",
+
+    "schema.include.list": "core,biz,fin,system",
+
+    "table.exclude.list": "system.audit_logs",
+
+    "snapshot.mode": "initial",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false",
+
+    "decimal.handling.mode": "string",
+    "time.precision.mode": "connect",
+
+    "heartbeat.interval.ms": "10000"
+  }
+}
